@@ -1,0 +1,38 @@
+FROM gradle:8-jdk21 AS builder
+
+WORKDIR /app
+
+# Set Gradle memory options
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs='-Xmx3g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError'"
+
+# Copy gradle files for caching dependencies
+COPY build.gradle settings.gradle gradle.properties ./
+COPY gradle ./gradle
+
+# Copy source code
+COPY . .
+
+# Build the application with memory settings
+RUN gradle clean build -x test --no-daemon --max-workers=2
+
+# Runtime stage
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+# Copy built artifacts
+COPY --from=builder /app/cli/build/libs/cli-*.jar /app/kestra.jar
+
+# Create directories for storage
+RUN mkdir -p /app/storage /app/data
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Run Kestra
+ENTRYPOINT ["java"]
+CMD ["-jar", "/app/kestra.jar", "server", "standalone"]
