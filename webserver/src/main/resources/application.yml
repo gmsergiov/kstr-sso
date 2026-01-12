@@ -1,0 +1,33 @@
+micronaut:
+  security:
+    enabled: true
+    oauth2:
+      enabled: true
+      clients:
+        # Use Keycloak
+        keycloak:
+          client-id: ${OAUTH_CLIENT_ID}
+          client-secret: ${OAUTH_CLIENT_SECRET}
+          openid:
+            issuer: ${OAUTH_ISSUER_URL}
+        
+        # Or use Okta
+        okta:
+          client-id: ${OKTA_CLIENT_ID}
+          client-secret: ${OKTA_CLIENT_SECRET}
+          openid:
+            issuer: https://your-domain.okta.com/oauth2/default
+        
+        # Or use Azure AD
+        azure:
+          client-id: ${AZURE_CLIENT_ID}
+          client-secret: ${AZURE_CLIENT_SECRET}
+          openid:
+            issuer: https://login.microsoftonline.com/${TENANT_ID}/v2.0
+        
+        # Or use Google
+        google:
+          client-id: ${GOOGLE_CLIENT_ID}
+          client-secret: ${GOOGLE_CLIENT_SECRET}
+          openid:
+            issuer: https://accounts.google.com

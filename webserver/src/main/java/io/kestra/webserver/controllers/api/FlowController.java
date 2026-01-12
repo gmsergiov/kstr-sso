@@ -42,6 +42,8 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.scheduling.TaskExecutors;
 import io.micronaut.scheduling.annotation.ExecuteOn;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import io.micronaut.validation.Validated;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,6 +69,7 @@ import java.util.stream.Stream;
 @Validated
 @Controller("/api/v1/{tenant}/flows")
 @Slf4j
+@Secured(SecurityRule.IS_AUTHENTICATED)
 public class FlowController {
     private static final String WARNING_JSON_FLOW_ENDPOINT = "This endpoint is deprecated. Handling flows as 'application/json' is no longer supported and will be removed in a future release. Please use the same endpoint with an 'application/x-yaml' content type.";
 
@@ -269,6 +272,7 @@ public class FlowController {
     @ExecuteOn(TaskExecutors.IO)
     @Post(consumes = MediaType.APPLICATION_YAML)
     @Operation(tags = {"Flows"}, summary = "Create a flow from yaml source")
+    @Secured("ROLE_ADMIN")
     public HttpResponse<FlowWithSource> createFlow(
         @RequestBody(description = "The flow source code") @Body String flow
     ) throws ConstraintViolationException {
@@ -312,6 +316,7 @@ public class FlowController {
         description = "All flow will be created / updated for this namespace.\n" +
                       "Flow that already created but not in `flows` will be deleted if the query delete is `true`"
     )
+    @Secured("ROLE_ADMIN")
     public List<FlowInterface> updateFlowsInNamespace(
         @Parameter(description = "The flow namespace") @PathVariable String namespace,
         @RequestBody(description = "A list of flows source code") @Body @Nullable String flows,
@@ -443,6 +448,7 @@ public class FlowController {
     @ExecuteOn(TaskExecutors.IO)
     @Operation(tags = {"Flows"}, summary = "Update a flow")// force deprecated = false otherwise it is marked as deprecated, dont know why
     @ApiResponse(responseCode = "200", description = "On success", content = {@Content(schema = @Schema(implementation = FlowWithSource.class))})
+    @Secured("ROLE_ADMIN")
     public HttpResponse<FlowWithSource> updateFlow(
         @Parameter(description = "The flow namespace") @PathVariable String namespace,
         @Parameter(description = "The flow id") @PathVariable String id,
@@ -514,6 +520,7 @@ public class FlowController {
         description = "All flow will be created / updated for this namespace.\n" +
                       "Flow that already created but not in `flows` will be deleted if the query delete is `true`"
     )
+    @Secured("ROLE_ADMIN")
     public List<FlowInterface> bulkUpdateFlows(
         @RequestBody(description = "A list of flows source code splitted with \"---\"") @Body @Nullable String flows,
         @Parameter(description = "If missing flow should be deleted") @QueryValue(defaultValue = "true") Boolean delete,
@@ -568,6 +575,7 @@ public class FlowController {
     @ExecuteOn(TaskExecutors.IO)
     @Operation(tags = {"Flows"}, summary = "Delete a flow")
     @ApiResponse(responseCode = "204", description = "On success")
+    @Secured("ROLE_ADMIN")
     public HttpResponse<Void> deleteFlow(
         @Parameter(description = "The flow namespace") @PathVariable String namespace,
         @Parameter(description = "The flow id") @PathVariable String id
@@ -744,6 +752,7 @@ public class FlowController {
         tags = {"Flows"},
         summary = "Delete flows returned by the query parameters."
     )
+    @Secured("ROLE_ADMIN")
     public HttpResponse<BulkResponse> deleteFlowsByQuery(
         @Parameter(description = "Filters", in = ParameterIn.QUERY) @QueryFilterFormat List<QueryFilter> filters,
 
@@ -769,6 +778,7 @@ public class FlowController {
         tags = {"Flows"},
         summary = "Delete flows by their IDs."
     )
+    @Secured("ROLE_ADMIN")
     public HttpResponse<BulkResponse> deleteFlowsByIds(
         @RequestBody(description = "A list of tuple flow ID and namespace as flow identifiers") @Body List<IdWithNamespace> ids
     ) {
@@ -875,6 +885,7 @@ public class FlowController {
             """
     )
     @ApiResponse(responseCode = "200", description = "On success")
+    @Secured("ROLE_ADMIN")
     public HttpResponse<List<String>> importFlows(
         @Parameter(description = "The file to import, can be a ZIP archive or a multi-objects YAML file")
         @Part CompletedFileUpload fileUpload,
