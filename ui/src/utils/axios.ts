@@ -245,6 +245,19 @@ export const createAxios = (
                 return Promise.reject(errorResponse.response.data)
             }
 
+            // Handle 403 Forbidden - User doesn't have required permissions
+            if (errorResponse.response.status === 403) {
+                const coreStore = useCoreStore()
+                coreStore.message = {
+                    variant: "error",
+                    response: errorResponse.response,
+                    content: {
+                        message: "You don't have permission to perform this action. Please contact your administrator if you need access."
+                    }
+                }
+                return Promise.reject(errorResponse)
+            }
+
             if (errorResponse.response.data && errorResponse?.config?.showMessageOnError !== false) {
                 const coreStore = useCoreStore()
                 coreStore.message = {

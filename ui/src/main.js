@@ -11,6 +11,7 @@ import * as BasicAuth from "./utils/basicAuth";
 import {useMiscStore} from "override/stores/misc";
 
 import {shouldShowWelcome, isDashboardRoute} from "./utils/welcomeGuard";
+import {useAuthStore} from "override/stores/auth";
 
 const app = createApp(App)
 
@@ -68,6 +69,15 @@ initApp(app, routes, null, en).then(({router, piniaStore}) => {
             if (!hasCredentials) {
                 const fromPath = to.fullPath !== "/ui/login" ? to.fullPath : undefined
                 return next({name: "login", query: fromPath ? {from: fromPath} : {}})
+            }
+
+            // Load user profile with roles
+            const authStore = useAuthStore();
+            try {
+                await authStore.loadUser();
+            } catch (error) {
+                console.error("Failed to load user profile:", error);
+                // Continue anyway - permissions will be checked server-side
             }
 
             // Check if basic auth setup is still in progress
