@@ -15,6 +15,10 @@ export default [
     {name: "root", path: "/", redirect: {name: "home"}, meta: {layout: {template: "<div />"}, anonymous: true}},
     {name: "welcome", path: "/:tenant?/welcome", component: () => import("../components/onboarding/Welcome.vue")},
 
+    // OAuth2 & Authentication
+    {name: "login", path: "/ui/login", component: () => import("../components/basicauth/OAuth2Login.vue"), meta: {anonymous: true, layout: FullScreenLayout}},
+    {name: "oauth2-callback", path: "/ui/oauth2-callback", component: () => import("../components/basicauth/OAuth2Callback.vue"), meta: {anonymous: true, layout: FullScreenLayout}},
+
     //Dashboards
     {
         name: "home",
