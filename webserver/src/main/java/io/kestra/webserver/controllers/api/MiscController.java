@@ -14,8 +14,10 @@ import io.kestra.core.services.InstanceService;
 import io.kestra.core.utils.EditionProvider;
 import io.kestra.core.utils.NamespaceUtils;
 import io.kestra.core.utils.VersionProvider;
+import io.kestra.webserver.configurations.OAuth2Configuration;
 import io.kestra.webserver.services.BasicAuthCredentials;
 import io.kestra.webserver.services.BasicAuthService;
+import io.kestra.webserver.services.OAuth2Service;
 import io.micronaut.context.ApplicationContext;
 import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
@@ -63,6 +65,9 @@ public class MiscController {
 
     @Inject
     Optional<BasicAuthService> basicAuthService = Optional.empty();
+    
+    @Inject
+    Optional<OAuth2Service> oauth2Service = Optional.empty();
 
     @Inject
     Optional<TemplateRepositoryInterface> templateRepository;
@@ -148,6 +153,23 @@ private String chartDefaultDuration;
                     .build()
             );
         }
+        
+        // Add OAuth2 configuration if enabled
+        if (oauth2Service.isPresent() && oauth2Service.get().isEnabled()) {
+            OAuth2Configuration oauth2Config = oauth2Service.get().getConfiguration();
+            log.info("OAuth2 Configuration: authEndpoint={}, tokenEndpoint={}, userInfoEndpoint={}", 
+                oauth2Config.getAuthorizationEndpoint(),
+                oauth2Config.getTokenEndpoint(),
+                oauth2Config.getUserInfoEndpoint()
+            );
+            builder
+                .oauth2ClientId(oauth2Config.getClientId())
+                .oauth2AuthEndpoint(oauth2Config.getAuthorizationEndpoint())
+                .oauth2TokenEndpoint(oauth2Config.getTokenEndpoint())
+                .oauth2UserInfoEndpoint(oauth2Config.getUserInfoEndpoint())
+                .oauth2LogoutEndpoint(oauth2Config.getLogoutEndpoint())
+                .oauth2Scope(oauth2Config.getScope());
+        }
 
         return builder.build();
     }
@@ -232,6 +254,25 @@ private String chartDefaultDuration;
         Long pluginsHash;
 
         Boolean isConcurrencyViewEnabled;
+        
+        // OAuth2 configuration fields
+        @JsonInclude
+        String oauth2ClientId;
+        
+        @JsonInclude
+        String oauth2AuthEndpoint;
+        
+        @JsonInclude
+        String oauth2TokenEndpoint;
+        
+        @JsonInclude
+        String oauth2UserInfoEndpoint;
+        
+        @JsonInclude
+        String oauth2LogoutEndpoint;
+        
+        @JsonInclude
+        String oauth2Scope;
     }
 
     @Value

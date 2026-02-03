@@ -17,6 +17,7 @@ prettierrc.js
 .attach*
 **/*.class
 **/bin/*
+.sso/
 
 ### Configurations
 docker-compose.override.yml
@@ -59,3 +60,4 @@ core/src/main/resources/gradle.properties
 **/allure-results/*
 
 /jmh-benchmarks/src/main/resources/gradle.properties
+*package-lock.json

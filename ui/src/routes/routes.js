@@ -15,6 +15,10 @@ export default [
     {name: "root", path: "/", redirect: {name: "home"}, meta: {layout: {template: "<div />"}, anonymous: true}},
     {name: "welcome", path: "/:tenant?/welcome", component: () => import("../components/onboarding/Welcome.vue")},
 
+    // OAuth2 & Authentication
+    {name: "login", path: "/login", component: () => import("../components/basicauth/OAuth2Login.vue"), meta: {anonymous: true, layout: FullScreenLayout}},
+    {name: "oauth2-callback", path: "/oauth2-callback", component: () => import("../components/basicauth/OAuth2Callback.vue"), meta: {anonymous: true, layout: FullScreenLayout}},
+
     //Dashboards
     {
         name: "home",
@@ -115,8 +119,8 @@ export default [
 
     //Setup
     {name: "setup", path: "/:tenant?/setup", component: () => import("../components/basicauth/BasicAuthSetup.vue"), meta: {layout: FullScreenLayout, anonymous: true}},
-    //Login
-    {name: "login", path: "/:tenant?/login", component: () => import("../components/basicauth/BasicAuthLogin.vue"), meta: {layout: FullScreenLayout, anonymous: true}},
+    //BasicAuth Login
+    {name: "basicauth-login", path: "/:tenant?/login", component: () => import("../components/basicauth/BasicAuthLogin.vue"), meta: {layout: FullScreenLayout, anonymous: true}},
 
     //Errors
     {name: "errors/404-wildcard", path: "/:tenant?/:pathMatch(.*)", component: Errors, props: {code: 404}},
