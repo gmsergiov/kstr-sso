@@ -7,6 +7,7 @@
 export interface OAuth2Config {
     clientId: string;
     redirectUri: string;
+    postLogoutRedirectUri?: string;
     authorizationEndpoint: string;  // e.g., https://keycloak.com/auth/...auth
     tokenEndpoint: string;           // e.g., https://keycloak.com/auth/.../token
     userInfoEndpoint: string;        // e.g., https://keycloak.com/auth/.../userinfo
@@ -197,7 +198,7 @@ export class OAuth2Manager {
 
         const params = new URLSearchParams({
             client_id: this.config.clientId,
-            post_logout_redirect_uri: this.config.redirectUri,
+            post_logout_redirect_uri: this.config.postLogoutRedirectUri || this.config.redirectUri,
         });
 
         // Redirect to provider logout
@@ -227,7 +228,10 @@ export class OAuth2Manager {
      * Check if tokens exist
      */
     hasTokens(): boolean {
-        return this.tokens !== null && this.tokens.accessToken !== null;
+        // Consider tokens present if we have either an access token or a refresh token.
+        // This allows the app to attempt a refresh on page reload when the access token
+        // has expired but a refresh token is available.
+        return this.tokens !== null && (this.tokens.accessToken !== null || this.tokens.refreshToken !== null);
     }
 
     /**
@@ -265,8 +269,10 @@ export class OAuth2Manager {
             const stored = sessionStorage.getItem("oauth2_tokens");
             if (stored) {
                 this.tokens = JSON.parse(stored);
-                // Check if tokens are already expired
-                if (this.isTokenExpired()) {
+                // If tokens are expired we keep them in memory only if a refresh token is present
+                // so that the app can attempt to refresh them on initialization. Only completely
+                // remove stored tokens if there is no refresh token or parsing failed.
+                if (this.isTokenExpired() && !this.tokens?.refreshToken) {
                     this.tokens = null;
                     sessionStorage.removeItem("oauth2_tokens");
                 }

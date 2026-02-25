@@ -110,14 +110,17 @@ class AuthenticationFilterTest {
 
     @Test
     void testUnauthorized() {
+        // Test 1: JSON API call without Accept header - should NOT include WWW-Authenticate
         HttpClientResponseException httpClientResponseException = assertThrows(HttpClientResponseException.class, () -> client.toBlocking()
             .exchange(HttpRequest.GET("/api/v1/main/dashboards").header("Authorization", "")));
-        assertThat(httpClientResponseException.getResponse().getHeaders().get("WWW-Authenticate")).isEqualTo("Basic");
+        assertThat(httpClientResponseException.getResponse().getHeaders().get("WWW-Authenticate")).isNull();
 
+        // Test 2: HTML request - should include WWW-Authenticate to trigger browser auth dialog
         httpClientResponseException = assertThrows(HttpClientResponseException.class, () -> client.toBlocking()
-            .exchange(HttpRequest.GET("/api/v1/main/dashboards").basicAuth("anonymous", "hacker")));
+            .exchange(HttpRequest.GET("/api/v1/main/dashboards").header("Authorization", "").header("Accept", "text/html")));
         assertThat(httpClientResponseException.getResponse().getHeaders().get("WWW-Authenticate")).isEqualTo("Basic");
 
+        // Test 3: From login page - should NOT include WWW-Authenticate
         httpClientResponseException = assertThrows(HttpClientResponseException.class, () -> client.toBlocking()
             .exchange(HttpRequest.GET("/api/v1/main/dashboards").header("Authorization", "").header("Referer", "http://localhost/login")));
         assertThat(httpClientResponseException.getResponse().getHeaders().get("WWW-Authenticate")).isNull();

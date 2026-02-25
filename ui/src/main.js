@@ -10,10 +10,16 @@ import {setupTenantRouter} from "./composables/useTenant";
 import * as BasicAuth from "./utils/basicAuth";
 import {useMiscStore} from "override/stores/misc";
 import {useOAuth2Store} from "./stores/oauth2";
+import {vPermission, vRole, vAdmin} from "./directives/permissions";
 
 import {shouldShowWelcome, isDashboardRoute} from "./utils/welcomeGuard";
 
 const app = createApp(App)
+
+// Register permission directives
+app.directive('permission', vPermission);
+app.directive('role', vRole);
+app.directive('admin', vAdmin);
 
 const handleAuthError = (error, to) => {
     if (error.message?.includes("401")) {
@@ -58,7 +64,8 @@ initApp(app, routes, null, en).then(({router, piniaStore}) => {
                 // Update isAuthenticated if tokens exist
                 if (oauth2Store.hasTokens && !oauth2Store.isAuthenticated) {
                     oauth2Store.isAuthenticated = true;
-                    oauth2Store.accessToken = oauth2Store.getManager()?.getAccessToken() || null;
+                    // Ensure access token is refreshed if needed and user info is loaded
+                    oauth2Store.getAccessToken().then(() => oauth2Store.fetchUserInfo());
                 }
 
                 // Check welcome flow for dashboard routes

@@ -1,5 +1,16 @@
 import {defineStore} from "pinia";
 import OAuth2Manager, {type OAuth2Config} from "../utils/oauth2";
+import {useAxios} from "../utils/axios";
+
+interface UserInfo {
+    authenticated: boolean;
+    username?: string;
+    email?: string;
+    name?: string;
+    roles?: string[];
+    permissions?: string[];
+    isAdmin?: boolean;
+}
 
 interface State {
     manager: OAuth2Manager | null;
@@ -7,6 +18,7 @@ interface State {
     accessToken: string | null;
     isInitialized: boolean;
     isLoading: boolean;
+    userInfo: UserInfo | null;
 }
 
 export const useOAuth2Store = defineStore("oauth2", {
@@ -16,6 +28,7 @@ export const useOAuth2Store = defineStore("oauth2", {
         accessToken: null,
         isInitialized: false,
         isLoading: false,
+        userInfo: null,
     }),
 
     getters: {
@@ -30,6 +43,27 @@ export const useOAuth2Store = defineStore("oauth2", {
         getManager: (state) => {
             return state.manager;
         },
+        
+        /**
+         * Check if user has a specific role
+         */
+        hasRole: (state) => (role: string) => {
+            return state.userInfo?.roles?.includes(role.toLowerCase()) ?? false;
+        },
+        
+        /**
+         * Check if user has a specific permission
+         */
+        hasPermission: (state) => (permission: string) => {
+            return state.userInfo?.permissions?.includes(permission) ?? false;
+        },
+        
+        /**
+         * Check if user is admin
+         */
+        isAdmin: (state) => {
+            return state.userInfo?.isAdmin ?? false;
+        },
     },
 
     actions: {
@@ -43,7 +77,7 @@ export const useOAuth2Store = defineStore("oauth2", {
                     // Re-check authentication status in case tokens were saved
                     this.isAuthenticated = this.manager.hasTokens();
                     if (this.isAuthenticated) {
-                        this.accessToken = this.manager.getAccessToken();
+                        this.getAccessToken().then(() => this.fetchUserInfo());
                     }
                     return;
                 }
@@ -65,6 +99,7 @@ export const useOAuth2Store = defineStore("oauth2", {
                 const oauth2Config: OAuth2Config = {
                     clientId: config.oauth2ClientId,
                     redirectUri: `${window.location.origin}/ui/oauth2-callback`,
+                    postLogoutRedirectUri: `${window.location.origin}/ui/login`,
                     authorizationEndpoint: config.oauth2AuthEndpoint,
                     tokenEndpoint: config.oauth2TokenEndpoint,
                     userInfoEndpoint: config.oauth2UserInfoEndpoint,
@@ -80,7 +115,7 @@ export const useOAuth2Store = defineStore("oauth2", {
                 this.isInitialized = true;
 
                 if (this.isAuthenticated) {
-                    this.accessToken = this.manager.getAccessToken();
+                    this.getAccessToken().then(() => this.fetchUserInfo());
                 }
             } catch (error) {
                 console.error("Failed to initialize OAuth2 store:", error);
@@ -111,22 +146,55 @@ export const useOAuth2Store = defineStore("oauth2", {
                 await this.manager.handleCallback(code, state);
                 this.isAuthenticated = true;
                 this.accessToken = this.manager.getAccessToken();
+                
+                // Fetch user info after successful authentication
+                await this.fetchUserInfo();
             } finally {
                 this.isLoading = false;
+            }
+        },
+        
+        /**
+         * Fetch current user info from backend
+         */
+        async fetchUserInfo() {
+            try {
+                if (!this.isAuthenticated || !this.accessToken) {
+                    return;
+                }
+                const axios = useAxios();
+                const response = await axios.get("/api/v1/user/me");
+                this.userInfo = response.data;
+                console.log("User info loaded:", this.userInfo);
+            } catch (error) {
+                console.error("Failed to fetch user info:", error);
+                this.userInfo = null;
             }
         },
 
         /**
          * Logout and redirect to provider logout endpoint
          */
-        logout() {
-            if (!this.manager) {
-                throw new Error("OAuth2 not initialized");
-            }
+        async logout(): Promise<void> {
+            try {
+                if (!this.manager) {
+                    // nothing to do, resolve
+                    this.isAuthenticated = false;
+                    this.accessToken = null;
+                    this.userInfo = null;
+                    return;
+                }
 
-            this.isAuthenticated = false;
-            this.accessToken = null;
-            this.manager.logout();
+                this.isAuthenticated = false;
+                this.accessToken = null;
+                this.userInfo = null;
+                // manager.logout may redirect the browser; keep it synchronous
+                this.manager.logout();
+            } catch (e) {
+                console.error("Error during logout:", e);
+                // ensure a Promise rejection is possible for callers
+                return Promise.reject(e);
+            }
         },
 
         /**
